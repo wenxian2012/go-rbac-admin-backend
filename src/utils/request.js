@@ -14,6 +14,7 @@ axios.interceptors.request.use(
   config => {
     if (config.url.indexOf('/auth') === -1 && getCacheItem(TOKEN)) {
       config.headers.Authorization = `Token ${getCacheItem(TOKEN)}`;
+      // TODO token 刷新实现
       // if (config.url.indexOf('/auth/token') !== -1) {
       //   config.headers.Authorization = `Bearer ${store.state.refreshToken}`;
       // } else {
@@ -35,21 +36,16 @@ axios.interceptors.response.use(
   },
   error => {
     if (error.response) {
-      switch (error.response.status) {
-        case 401: // 401 清除token信息并跳转到登录页面
-          delCacheItem(TOKEN);
-          delCacheItem(USER);
-          router.replace({
-            path: '/account/login',
-            query: { redirect: router.currentRoute.fullPath }
-          });
-          break;
-        default: // 其它业务或者权限问题直接将 response 返回
-          if (error.response) {
-            return Promise.reject(error.response);
-          }
-          break;
+      // 清除token信息并跳转到登录页面
+      if (error.response.status === 401 || error.response.status === 406) {
+        delCacheItem(TOKEN);
+        delCacheItem(USER);
+        router.replace({
+          path: '/account/login',
+          query: { redirect: router.currentRoute.fullPath }
+        });
       }
+      // 其它业务或者权限问题直接将 response 返回
       return Promise.reject(error.response);
     }
     // 返回response 为 null 的情况，底层不处理
